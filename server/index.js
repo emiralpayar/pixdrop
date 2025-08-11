@@ -9,6 +9,8 @@ import path from 'path';
 import { randomUUID } from 'crypto';
 import { fileURLToPath } from 'url';
 
+
+
 dotenv.config();
 
 const upload = multer({ storage: multer.memoryStorage() });
@@ -44,6 +46,7 @@ function getDriveClient() {
   });
   return google.drive({ version: 'v3', auth });
 }
+
 
 function eventForHost(host) {
   if (!host) return null;
@@ -89,6 +92,7 @@ app.post('/upload', upload.single('file'), async (req, res) => {
   try {
     const event = eventForHost(req.headers.host);
     const folderId = event?.folderId || req.body.folderId || process.env.DRIVE_FOLDER_ID;
+
     if (!req.file) return res.status(400).json({ error: 'No file' });
 
     const drive = getDriveClient();
