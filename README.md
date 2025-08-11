@@ -15,7 +15,7 @@ npm run preview
 
 ## Configure
 - Set `VITE_API_BASE` in `.env` when your backend is ready.
-- For demo, the app fakes success and points to a dummy Drive link.
+- For demo, the app fakes success without storing files.
 
 ## Deploy (Vercel recommended)
 1. Push this repo to GitHub
@@ -56,7 +56,7 @@ npm start
 Set `VITE_API_BASE` in the frontend to point to this server.
 ### Event Admin & Subdomains
 1. Visit `/admin` on the frontend to create events.
-2. Each event needs a unique `slug` (used as the subdomain) and a Drive folder ID.
+2. Each event needs a unique `slug` (used as the subdomain). A Drive folder is created under your root folder automatically.
 3. Uploads sent to `slug.example.com` will go to that event's Drive folder.
 4. Configure a wildcard DNS record (`*.pixdrop.cloud`) pointing to your host so subdomains resolve.
 

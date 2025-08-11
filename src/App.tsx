@@ -5,8 +5,7 @@ import { toast } from 'sonner'
 import clsx from 'clsx'
 
 const BACKEND_URL = import.meta.env?.VITE_API_BASE || ''
-const DUMMY_GOOGLE_DRIVE_LINK = 'https://drive.google.com/drive/folders/1DUMMYFOLDERID_SHARE_THIS'
-const DEFAULT_FOLDER_ID = '1DUMMYFOLDERID_SHARE_THIS'
+// Drive links are handled per event
 
 type Item = {
   id: string
@@ -29,7 +28,6 @@ export default function App() {
   const [stripExif, setStripExif] = useState(true)
   const [weddingCode, setWeddingCode] = useState('OurBigDay2025')
   const [uploaderName, setUploaderName] = useState('')
-  const [folderId, setFolderId] = useState(DEFAULT_FOLDER_ID)
   const [isUploading, setIsUploading] = useState(false)
   const [qrOpen, setQrOpen] = useState(false)
   const [qrDataUrl, setQrDataUrl] = useState('')
@@ -120,7 +118,6 @@ export default function App() {
       const prepared = await maybeCompress(item.file)
       const form = new FormData()
       form.append('file', prepared)
-      form.append('folderId', folderId)
       if (weddingCode) form.append('weddingCode', weddingCode)
       if (uploaderName) form.append('uploaderName', uploaderName)
 
@@ -141,7 +138,7 @@ export default function App() {
       } else {
         console.error(err)
         if (!BACKEND_URL) {
-          updateFile(item.id, { status: 'done', progress: 100, driveMeta: { webViewLink: DUMMY_GOOGLE_DRIVE_LINK } })
+          updateFile(item.id, { status: 'done', progress: 100 })
           toast.success(`(Demo) Uploaded: ${item.name}`)
         } else {
           updateFile(item.id, { status: 'error', canceler: null })
@@ -190,7 +187,6 @@ export default function App() {
           </div>
           <div className="flex items-center gap-2">
             <button className="px-3 py-2 rounded-lg border hover:bg-slate-50" onClick={() => setQrOpen(true)}>Share QR</button>
-            <a className="px-3 py-2 rounded-lg bg-sky-500 text-white hover:bg-sky-600" href={DUMMY_GOOGLE_DRIVE_LINK} target="_blank" rel="noreferrer">View Folder</a>
           </div>
         </header>
 
@@ -261,8 +257,8 @@ export default function App() {
                         {f.status === 'uploading' && (
                           <button className="px-2 py-1 rounded bg-slate-100 hover:bg-slate-200 text-sm" onClick={() => cancelUpload(f.id)}>Cancel</button>
                         )}
-                        {f.status === 'done' && (
-                          <a className="px-2 py-1 rounded border hover:bg-slate-50 text-sm" href={f.driveMeta?.webViewLink || DUMMY_GOOGLE_DRIVE_LINK} target="_blank" rel="noreferrer">Open</a>
+                        {f.status === 'done' && f.driveMeta?.webViewLink && (
+                          <a className="px-2 py-1 rounded border hover:bg-slate-50 text-sm" href={f.driveMeta.webViewLink} target="_blank" rel="noreferrer">Open</a>
                         )}
                         <button className="px-2 py-1 rounded text-sm hover:bg-rose-50" onClick={() => removeFile(f.id)}>Remove</button>
                       </div>
@@ -285,10 +281,6 @@ export default function App() {
                     <label className="grid grid-cols-3 items-center gap-2">
                       <span className="text-sm text-slate-700">Your name</span>
                       <input className="col-span-2 px-3 py-2 rounded border" value={uploaderName} onChange={(e) => setUploaderName(e.target.value)} placeholder="(optional)" />
-                    </label>
-                    <label className="grid grid-cols-3 items-center gap-2">
-                      <span className="text-sm text-slate-700">Folder ID</span>
-                      <input className="col-span-2 px-3 py-2 rounded border" value={folderId} onChange={(e) => setFolderId(e.target.value)} />
                     </label>
                   </div>
 
@@ -317,9 +309,6 @@ export default function App() {
                   <div className="font-medium mb-2">Share</div>
                   <p className="text-sm text-slate-600">Everyone can visit this page to upload their photos. Share it via QR.</p>
                   <button onClick={() => setQrOpen(true)} className="mt-2 px-3 py-2 rounded border hover:bg-slate-50">Show QR</button>
-                  <a href={DUMMY_GOOGLE_DRIVE_LINK} target="_blank" rel="noreferrer" className="block mt-2">
-                    <span className="px-3 py-2 inline-block rounded bg-slate-900 text-white hover:bg-black">Open Folder</span>
-                  </a>
                 </div>
               </div>
             </div>
@@ -327,7 +316,7 @@ export default function App() {
         </div>
 
         <footer className="text-center text-xs text-slate-400 mt-8">
-          Built with ❤️ for your big day · Replace the Drive folder link when backend is ready
+          Built with ❤️ for your big day
         </footer>
       </div>
 

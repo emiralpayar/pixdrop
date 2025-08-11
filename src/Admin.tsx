@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react'
 
 const BACKEND_URL = import.meta.env?.VITE_API_BASE || ''
+const slugify = (s: string) => s.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')
 
 interface EventItem {
   id: string
@@ -40,15 +41,17 @@ export default function Admin() {
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!form.name || !form.slug || !form.folderId) return
+    if (!form.name) return
     const method = form.id ? 'PUT' : 'POST'
     const url = form.id ? `${BACKEND_URL}/events/${form.id}` : `${BACKEND_URL}/events`
-    await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form) })
+    const payload: any = { name: form.name }
+    if (form.slug) payload.slug = form.slug
+    await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
     setForm({})
     load()
   }
 
-  const edit = (ev: EventItem) => setForm(ev)
+  const edit = (ev: EventItem) => setForm({ id: ev.id, name: ev.name, slug: ev.slug })
   const del = async (id: string) => { await fetch(`${BACKEND_URL}/events/${id}`, { method: 'DELETE' }); load() }
 
   return (
@@ -75,9 +78,8 @@ export default function Admin() {
         <div>
           <form onSubmit={submit} className="space-y-2 mb-6 p-4 border rounded-lg bg-slate-50">
             <h2 className="text-lg font-medium mb-2">Add/Edit Event</h2>
-            <input className="w-full border p-2 rounded" placeholder="Event Name" value={form.name||''} onChange={e=>setForm({...form, name:e.target.value})} />
+            <input className="w-full border p-2 rounded" placeholder="Event Name" value={form.name||''} onChange={e=>{const name=e.target.value; setForm(f=>({...f, name, slug: f.slug||slugify(name)}))}} />
             <input className="w-full border p-2 rounded" placeholder="Slug (subdomain)" value={form.slug||''} onChange={e=>setForm({...form, slug:e.target.value})} />
-            <input className="w-full border p-2 rounded" placeholder="Google Drive Folder ID" value={form.folderId||''} onChange={e=>setForm({...form, folderId:e.target.value})} />
             <div className="flex gap-2">
               <button className="px-4 py-2 bg-sky-500 text-white rounded hover:bg-sky-600" type="submit">
                 {form.id? 'Update':'Add'} Event
@@ -100,7 +102,9 @@ export default function Admin() {
                   <li key={ev.id} className="border p-4 rounded flex justify-between items-center bg-white">
                     <div>
                       <div className="font-medium">{ev.name}</div>
-                      <div className="text-sm text-slate-600">Subdomain: {ev.slug}</div>
+                      <div className="text-sm text-slate-600">
+                        Link: <a href={`https://${ev.slug}.pixdrop.cloud`} target="_blank" rel="noreferrer" className="text-sky-600 underline">{ev.slug}.pixdrop.cloud</a>
+                      </div>
                       <div className="text-xs text-slate-500">Folder ID: {ev.folderId}</div>
                     </div>
                     <div className="flex gap-2">
