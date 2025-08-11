@@ -35,6 +35,16 @@ loadEvents();
 app.use(cors());
 app.use(express.json());
 
+// Admin status endpoint
+app.get('/admin/status', (req, res) => {
+  res.json({
+    folderId: process.env.DRIVE_FOLDER_ID || '',
+    hasServiceAccount: !!process.env.GOOGLE_SERVICE_ACCOUNT,
+    backendUrl: `${req.protocol}://${req.get('host')}`,
+    timestamp: new Date().toISOString()
+  });
+});
+
 function getDriveClient() {
   const credentials = process.env.GOOGLE_SERVICE_ACCOUNT
     ? JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT)

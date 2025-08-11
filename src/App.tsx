@@ -21,73 +21,7 @@ type Item = {
   driveMeta: any
 }
 
-function AdminPage() {
-  const [config, setConfig] = useState({
-    folderId: '',
-    hasServiceAccount: false,
-    backendUrl: ''
-  })
-
-  useEffect(() => {
-    // Check backend status
-    fetch(`${BACKEND_URL}/admin/status`)
-      .then(res => res.json())
-      .then(data => setConfig(data))
-      .catch(() => {})
-  }, [])
-
-  return (
-    <div className="min-h-screen bg-slate-50 p-6">
-      <div className="mx-auto max-w-2xl">
-        <div className="bg-white rounded-2xl shadow-sm border p-6">
-          <h1 className="text-2xl font-semibold mb-6">PixDrop Admin</h1>
-          
-          <div className="space-y-4">
-            <div className="p-4 rounded-lg border">
-              <h2 className="font-medium mb-2">Backend Status</h2>
-              <div className="flex items-center gap-2">
-                <div className={`w-3 h-3 rounded-full ${BACKEND_URL ? 'bg-green-500' : 'bg-red-500'}`}></div>
-                <span className="text-sm">{BACKEND_URL ? 'Connected' : 'No backend configured'}</span>
-              </div>
-              {BACKEND_URL && <p className="text-xs text-slate-500 mt-1">{BACKEND_URL}</p>}
-            </div>
-
-            <div className="p-4 rounded-lg border">
-              <h2 className="font-medium mb-2">Google Drive Integration</h2>
-              <div className="flex items-center gap-2">
-                <div className={`w-3 h-3 rounded-full ${config.hasServiceAccount ? 'bg-green-500' : 'bg-red-500'}`}></div>
-                <span className="text-sm">{config.hasServiceAccount ? 'Service account configured' : 'No service account'}</span>
-              </div>
-              {config.folderId && (
-                <p className="text-xs text-slate-500 mt-1">Folder ID: {config.folderId}</p>
-              )}
-            </div>
-
-            <div className="p-4 rounded-lg border">
-              <h2 className="font-medium mb-2">Environment Variables</h2>
-              <div className="text-xs text-slate-600 space-y-1">
-                <div>VITE_API_BASE: {import.meta.env.VITE_API_BASE || 'Not set'}</div>
-                <div>Backend responds: {config.backendUrl || 'No response'}</div>
-              </div>
-            </div>
-          </div>
-
-          <div className="mt-6">
-            <a href="/" className="px-4 py-2 bg-sky-500 text-white rounded-lg hover:bg-sky-600">
-              Back to Upload
-            </a>
-          </div>
-        </div>
-      </div>
-    </div>
-  )
-}
-
 export default function App() {
-  // Check if we're on admin route
-  if (window.location.pathname === '/admin') {
-    return <AdminPage />
-  }
 
   const [files, setFiles] = useState<Item[]>([])
   const [dragActive, setDragActive] = useState(false)
