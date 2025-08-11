@@ -1,0 +1,10 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --ring: 226 100% 64%;
+}
+.app-container {
+  background: linear-gradient(180deg,#f8fafc 0%,#ffffff 100%);
+}
