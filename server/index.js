@@ -57,6 +57,14 @@ function getDriveClient() {
   return google.drive({ version: 'v3', auth });
 }
 
+function slugify(str) {
+  return String(str)
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+}
+
 
 function eventForHost(host) {
   if (!host) return null;
@@ -69,10 +77,29 @@ app.get('/events', (req, res) => {
 });
 
 app.post('/events', async (req, res) => {
-  const { name, slug, folderId } = req.body;
-  if (!name || !slug || !folderId) {
-    return res.status(400).json({ error: 'Missing fields' });
+  let { name, slug } = req.body;
+  if (!name) return res.status(400).json({ error: 'Missing name' });
+  slug = slugify(slug || name);
+
+  let folderId = '';
+  try {
+    const drive = getDriveClient();
+    const root = process.env.DRIVE_FOLDER_ID;
+    if (drive && root) {
+      const folder = await drive.files.create({
+        requestBody: {
+          name,
+          mimeType: 'application/vnd.google-apps.folder',
+          parents: [root]
+        },
+        fields: 'id'
+      });
+      folderId = folder.data.id || '';
+    }
+  } catch (err) {
+    console.error('Folder creation failed:', err);
   }
+
   const event = { id: randomUUID(), name, slug, folderId };
   events.push(event);
   await saveEvents();
@@ -83,8 +110,12 @@ app.put('/events/:id', async (req, res) => {
   const { id } = req.params;
   const idx = events.findIndex(e => e.id === id);
   if (idx === -1) return res.status(404).json({ error: 'Not found' });
-  const { name, slug, folderId } = req.body;
-  events[idx] = { ...events[idx], name, slug, folderId };
+  const { name, slug } = req.body;
+  events[idx] = {
+    ...events[idx],
+    ...(name ? { name } : {}),
+    ...(slug ? { slug: slugify(slug) } : {})
+  };
   await saveEvents();
   res.json(events[idx]);
 });
