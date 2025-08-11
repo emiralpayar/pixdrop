@@ -29,6 +29,37 @@ npm run preview
 - optional: weddingCode, uploaderName
 - returns: `{ id, name, webViewLink? }`
 
+## Built-in Backend (Node + Google Drive)
+A minimal Express server lives in the `server/` directory. It can upload
+files to a Google Drive folder or, if no credentials are provided, fall back
+to saving them on the local filesystem.
+
+### Setup
+1. Create a Google Cloud service account and enable the Drive API.
+2. Download the service-account JSON file.
+3. Create a folder on your Drive, note its ID and share it with the service account.
+4. Export environment variables (or place them in `server/.env`):
+   ```bash
+   export GOOGLE_SERVICE_ACCOUNT="$(cat /path/to/credentials.json)"
+   export DRIVE_FOLDER_ID="<your-root-folder-id>"
+   # optionally: export PORT=3001
+   ```
+5. Install deps and start the server:
+
+```
+cd server
+npm install
+npm start
+```
+
+Set `VITE_API_BASE` in the frontend to point to this server.
+
+### Event Admin & Subdomains
+1. Visit `/admin` on the frontend to create events.
+2. Each event needs a unique `slug` (used as the subdomain) and a Drive folder ID.
+3. Uploads sent to `slug.example.com` will go to that event's Drive folder.
+4. Configure a wildcard DNS record (`*.pixdrop.cloud`) pointing to your host so subdomains resolve.
+
 ## Own Drive (S3/R2)
 Use presigned uploads:
 - `POST /sign-upload` → returns `{ uploadUrl, key }`
