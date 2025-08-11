@@ -29,6 +29,29 @@ npm run preview
 - optional: weddingCode, uploaderName
 - returns: `{ id, name, webViewLink? }`
 
+## Built-in Backend (Node + Google Drive)
+A minimal Express server lives in the `server/` directory. It can upload
+files to a Google Drive folder or, if no credentials are provided, fall back
+to saving them on the local filesystem.
+
+### Setup
+1. Create a Google Cloud service account and enable the Drive API.
+2. Share your target Drive folder with the service account and note the
+   folder ID.
+3. In the `server` directory, create an `.env` file (or export variables) with:
+   - `GOOGLE_SERVICE_ACCOUNT` – JSON credentials for the service account.
+   - `DRIVE_FOLDER_ID` – ID of the shared Drive folder.
+   - `PORT` (optional) – port to listen on.
+4. Install deps and start the server:
+
+```
+cd server
+npm install
+npm start
+```
+
+Set `VITE_API_BASE` in the frontend to point to this server.
+
 ## Own Drive (S3/R2)
 Use presigned uploads:
 - `POST /sign-upload` → returns `{ uploadUrl, key }`
