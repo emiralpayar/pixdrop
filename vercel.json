@@ -7,6 +7,10 @@
     {
       "source": "/admin/(.*)",
       "destination": "/index.html"
+    },
+    {
+      "source": "/api/(.*)",
+      "destination": "https://pixdrop-lac.vercel.app/$1"
     }
   ]
 }
