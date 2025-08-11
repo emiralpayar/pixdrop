@@ -1,30 +1,10 @@
-// Vercel Serverless Function: /api/upload
-// Accepts multipart/form-data with fields:
-// - file (image)
-// - folderId (optional; defaults to env DRIVE_FOLDER_ID)
-// - weddingCode (optional), uploaderName (optional)
-//
-// Uploads to Google Drive using a Service Account (env: GOOGLE_SERVICE_ACCOUNT)
-// Requires the target Drive folder to be shared with the service account email.
-//
-// Returns: { id, name, webViewLink, webContentLink }
-const Busboy = require('busboy');
-const { google } = require('googleapis');
-const fs = require('fs');
-const os = require('os');
-const path = require('path');
-const mime = require('mime-types');
-
-function sendCORSHeaders(req, res) {
+// ESM version – Vercel Node Function
+export default async function handler(req, res) {
   const allowed = ['https://pixdrop.cloud', 'https://www.pixdrop.cloud'];
   const origin = req.headers.origin || '';
   if (allowed.includes(origin)) res.setHeader('Access-Control-Allow-Origin', origin);
   res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-}
-
-module.exports = async (req, res) => {
-  sendCORSHeaders(req, res);
   if (req.method === 'OPTIONS') return res.status(204).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
@@ -32,6 +12,14 @@ module.exports = async (req, res) => {
   let svc;
   try { svc = JSON.parse(raw); }
   catch { return res.status(500).json({ error: 'Invalid GOOGLE_SERVICE_ACCOUNT JSON' }); }
+
+  // Dynamic imports for ESM in serverless
+  const { default: Busboy } = await import('busboy');
+  const { google } = await import('googleapis');
+  const fs = await import('node:fs');
+  const os = await import('node:os');
+  const path = await import('node:path');
+  const { default: mime } = await import('mime-types');
 
   const auth = new google.auth.JWT(
     svc.client_email,
@@ -44,7 +32,7 @@ module.exports = async (req, res) => {
   let tmpFilePath = null;
   let filename = null;
   let contentType = null;
-  let fields = { folderId: process.env.DRIVE_FOLDER_ID || '' };
+  const fields = { folderId: process.env.DRIVE_FOLDER_ID || '' };
 
   try {
     await new Promise((resolve, reject) => {
@@ -58,9 +46,7 @@ module.exports = async (req, res) => {
         file.pipe(writeStream);
         writeStream.on('close', () => {});
       });
-      bb.on('field', (name, val) => {
-        fields[name] = val;
-      });
+      bb.on('field', (name, val) => { fields[name] = val; });
       bb.on('error', reject);
       bb.on('finish', resolve);
       req.pipe(bb);
@@ -77,7 +63,6 @@ module.exports = async (req, res) => {
   const folderId = fields.folderId || process.env.DRIVE_FOLDER_ID;
   if (!folderId) return res.status(400).json({ error: 'No folderId provided and DRIVE_FOLDER_ID not set' });
 
-  // Optional: prefix file name with metadata
   const prefixParts = [];
   if (fields.weddingCode) prefixParts.push(fields.weddingCode);
   if (fields.uploaderName) prefixParts.push(fields.uploaderName);
@@ -85,20 +70,13 @@ module.exports = async (req, res) => {
 
   try {
     const createRes = await drive.files.create({
-      requestBody: {
-        name: finalName,
-        parents: [folderId]
-      },
-      media: {
-        mimeType: contentType,
-        body: fs.createReadStream(tmpFilePath)
-      },
+      requestBody: { name: finalName, parents: [folderId] },
+      media: { mimeType: contentType, body: fs.createReadStream(tmpFilePath) },
       fields: 'id,name,webViewLink,webContentLink'
     });
 
     const fileId = createRes.data.id;
 
-    // Optionally make file public
     if ((process.env.DRIVE_PUBLIC || '').toLowerCase() === 'true') {
       try {
         await drive.permissions.create({
@@ -106,16 +84,15 @@ module.exports = async (req, res) => {
           requestBody: { role: 'reader', type: 'anyone' }
         });
       } catch (e) {
-        console.warn('Could not set public permission:', e.message);
+        console.warn('Could not set public permission:', e?.message);
       }
     }
 
-    // Clean up tmp file
     try { fs.unlinkSync(tmpFilePath); } catch {}
 
     return res.status(200).json(createRes.data);
   } catch (err) {
-    console.error('Drive upload error:', err.message);
-    return res.status(500).json({ error: 'Drive upload failed', details: err.message });
+    console.error('Drive upload error:', err?.message || err);
+    return res.status(500).json({ error: 'Drive upload failed', details: String(err?.message || err) });
   }
-};
+}

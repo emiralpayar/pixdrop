@@ -1,16 +1,9 @@
 {
   "rewrites": [
-    {
-      "source": "/admin",
-      "destination": "/index.html"
-    },
-    {
-      "source": "/admin/(.*)",
-      "destination": "/index.html"
-    },
-    {
-      "source": "/api/(.*)",
-      "destination": "https://pixdrop-lac.vercel.app/$1"
-    }
-  ]
+    { "source": "/admin", "destination": "/index.html" },
+    { "source": "/admin/(.*)", "destination": "/index.html" }
+  ],
+  "functions": {
+    "api/**/*.js": { "runtime": "nodejs18.x" }
+  }
 }
