@@ -1,4 +1,4 @@
-// ESM version – Vercel Node Function
+// ESM – Vercel Node Function
 export default async function handler(req, res) {
   const allowed = ['https://pixdrop.cloud', 'https://www.pixdrop.cloud'];
   const origin = req.headers.origin || '';
@@ -13,7 +13,7 @@ export default async function handler(req, res) {
   try { svc = JSON.parse(raw); }
   catch { return res.status(500).json({ error: 'Invalid GOOGLE_SERVICE_ACCOUNT JSON' }); }
 
-  // Dynamic imports for ESM in serverless
+  // ESM'de dynamic import
   const { default: Busboy } = await import('busboy');
   const { google } = await import('googleapis');
   const fs = await import('node:fs');
@@ -89,7 +89,6 @@ export default async function handler(req, res) {
     }
 
     try { fs.unlinkSync(tmpFilePath); } catch {}
-
     return res.status(200).json(createRes.data);
   } catch (err) {
     console.error('Drive upload error:', err?.message || err);

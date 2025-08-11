@@ -1,6 +1,5 @@
-// Vercel Serverless Function (Node)
-// GET /api/admin/status
-module.exports = (req, res) => {
+// ESM – Vercel Node Function
+export default function handler(req, res) {
   const allowed = ['https://pixdrop.cloud', 'https://www.pixdrop.cloud'];
   const origin = req.headers.origin || '';
   if (allowed.includes(origin)) res.setHeader('Access-Control-Allow-Origin', origin);
@@ -13,11 +12,11 @@ module.exports = (req, res) => {
   try { parsed = JSON.parse(raw); } catch {}
   const hasServiceAccount = !!(parsed && parsed.client_email && parsed.private_key);
 
-  res.setHeader('Content-Type','application/json');
+  res.setHeader('Content-Type', 'application/json');
   res.status(200).send(JSON.stringify({
     hasServiceAccount,
     folderId: process.env.DRIVE_FOLDER_ID || null,
     backendUrl: process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : '',
     timestamp: new Date().toISOString()
   }));
-};
+}
