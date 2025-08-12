@@ -5,7 +5,17 @@ import { toast } from 'sonner'
 import clsx from 'clsx'
 
 const BACKEND_URL = import.meta.env?.VITE_API_BASE || ''
-// Drive links are handled per event
+
+type Event = {
+  id: string
+  name: string
+  slug: string
+  folderId: string
+  folderLink: string
+  link: string
+  createdAt: string
+  hasCustomFolder: boolean
+}
 
 type Item = {
   id: string
@@ -21,7 +31,13 @@ type Item = {
 }
 
 export default function App() {
+  // Detect if this is an event page
+  const pathname = window.location.pathname
+  const isEventPage = pathname.startsWith('/event/')
+  const eventName = isEventPage ? pathname.split('/event/')[1] : null
 
+  const [event, setEvent] = useState<Event | null>(null)
+  const [eventLoading, setEventLoading] = useState(isEventPage)
   const [files, setFiles] = useState<Item[]>([])
   const [dragActive, setDragActive] = useState(false)
   const [compress, setCompress] = useState(true)
@@ -33,6 +49,28 @@ export default function App() {
   const [qrDataUrl, setQrDataUrl] = useState('')
   const inputRef = useRef<HTMLInputElement|null>(null)
   const dropRef = useRef<HTMLDivElement|null>(null)
+
+  // Fetch event details if this is an event page
+  useEffect(() => {
+    if (isEventPage && eventName) {
+      setEventLoading(true)
+      fetch(`${BACKEND_URL}/api/events/${eventName}`)
+        .then(res => res.json())
+        .then(data => {
+          if (data.error) {
+            toast.error(`Event not found: ${eventName}`)
+          } else {
+            setEvent(data)
+            setWeddingCode(data.name)
+          }
+        })
+        .catch(err => {
+          console.error('Failed to fetch event:', err)
+          toast.error('Failed to load event details')
+        })
+        .finally(() => setEventLoading(false))
+    }
+  }, [isEventPage, eventName])
 
   useEffect(() => {
     const url = window.location.origin + window.location.pathname
@@ -118,10 +156,18 @@ export default function App() {
       const prepared = await maybeCompress(item.file)
       const form = new FormData()
       form.append('file', prepared)
-      if (weddingCode) form.append('weddingCode', weddingCode)
+      
+      // Use event folder if available, otherwise use form inputs
+      if (event?.folderId) {
+        form.append('eventFolderId', event.folderId)
+        form.append('eventName', event.name)
+      } else {
+        if (weddingCode) form.append('weddingCode', weddingCode)
+      }
+      
       if (uploaderName) form.append('uploaderName', uploaderName)
 
-      const res = await fetch(`${BACKEND_URL}/upload`, {
+      const res = await fetch(`${BACKEND_URL}/api/upload`, {
         method: 'POST',
         body: form,
         signal: controller.signal
@@ -182,11 +228,38 @@ export default function App() {
       <div className="mx-auto max-w-6xl p-6 md:p-10">
         <header className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-6">
           <div>
-            <div className="text-3xl md:text-4xl font-semibold tracking-tight">PixDrop</div>
-            <p className="text-slate-600 mt-1">Drop, paste, or snap. We’ll take care of the rest ✨</p>
+            <div className="text-3xl md:text-4xl font-semibold tracking-tight">
+              {isEventPage ? event?.name || eventName : 'PixDrop'}
+            </div>
+            <p className="text-slate-600 mt-1">
+              {isEventPage 
+                ? `Upload your photos for ${event?.name || eventName}` 
+                : 'Drop, paste, or snap. We\'ll take care of the rest ✨'}
+            </p>
+            {eventLoading && (
+              <p className="text-sm text-slate-500">Loading event details...</p>
+            )}
           </div>
           <div className="flex items-center gap-2">
             <button className="px-3 py-2 rounded-lg border hover:bg-slate-50" onClick={() => setQrOpen(true)}>Share QR</button>
+            {event?.folderLink && (
+              <a 
+                href={event.folderLink} 
+                target="_blank" 
+                rel="noreferrer"
+                className="px-3 py-2 rounded-lg bg-sky-500 text-white hover:bg-sky-600"
+              >
+                View Folder
+              </a>
+            )}
+            {!isEventPage && (
+              <a 
+                href="/admin" 
+                className="px-3 py-2 rounded-lg bg-slate-900 text-white hover:bg-black"
+              >
+                Admin
+              </a>
+            )}
           </div>
         </header>
 
@@ -274,10 +347,12 @@ export default function App() {
                 <div className="rounded-xl border p-4">
                   <div className="font-medium mb-3">Upload Settings</div>
                   <div className="grid grid-cols-1 gap-3">
-                    <label className="grid grid-cols-3 items-center gap-2">
-                      <span className="text-sm text-slate-700">Event code</span>
-                      <input className="col-span-2 px-3 py-2 rounded border" value={weddingCode} onChange={(e) => setWeddingCode(e.target.value)} placeholder="Optional code" />
-                    </label>
+                    {!isEventPage && (
+                      <label className="grid grid-cols-3 items-center gap-2">
+                        <span className="text-sm text-slate-700">Event code</span>
+                        <input className="col-span-2 px-3 py-2 rounded border" value={weddingCode} onChange={(e) => setWeddingCode(e.target.value)} placeholder="Optional code" />
+                      </label>
+                    )}
                     <label className="grid grid-cols-3 items-center gap-2">
                       <span className="text-sm text-slate-700">Your name</span>
                       <input className="col-span-2 px-3 py-2 rounded border" value={uploaderName} onChange={(e) => setUploaderName(e.target.value)} placeholder="(optional)" />
@@ -307,8 +382,18 @@ export default function App() {
 
                 <div className="rounded-xl border p-4">
                   <div className="font-medium mb-2">Share</div>
-                  <p className="text-sm text-slate-600">Everyone can visit this page to upload their photos. Share it via QR.</p>
+                  <p className="text-sm text-slate-600">
+                    {isEventPage 
+                      ? `Share this page so guests can upload photos for ${event?.name || eventName}.`
+                      : 'Everyone can visit this page to upload their photos. Share it via QR.'
+                    }
+                  </p>
                   <button onClick={() => setQrOpen(true)} className="mt-2 px-3 py-2 rounded border hover:bg-slate-50">Show QR</button>
+                  {event?.folderLink && (
+                    <a href={event.folderLink} target="_blank" rel="noreferrer" className="block mt-2">
+                      <span className="px-3 py-2 inline-block rounded bg-slate-900 text-white hover:bg-black">Open Folder</span>
+                    </a>
+                  )}
                 </div>
               </div>
             </div>
@@ -316,7 +401,8 @@ export default function App() {
         </div>
 
         <footer className="text-center text-xs text-slate-400 mt-8">
-          Built with ❤️ for your big day
+          Built with ❤️ for your big day · 
+          {isEventPage ? ` Photos uploaded to ${event?.name || eventName}` : ' Create events in admin panel'}
         </footer>
       </div>
 
