@@ -94,7 +94,7 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'No file received' });
     }
 
-    const folderId = fields.folderId || process.env.DRIVE_FOLDER_ID;
+    const folderId = fields.folderId || fields.eventFolderId || process.env.DRIVE_FOLDER_ID;
     if (!folderId) {
       try { fs.unlinkSync(tmpFilePath); } catch {}
       return res.status(400).json({ error: 'No folderId provided and DRIVE_FOLDER_ID not set' });
@@ -103,7 +103,9 @@ export default async function handler(req, res) {
     console.log('Uploading to Google Drive folder:', folderId);
 
     const prefixParts = [];
-    if (fields.weddingCode) prefixParts.push(fields.weddingCode);
+    if (fields.weddingCode || fields.eventName) {
+      prefixParts.push(fields.weddingCode || fields.eventName);
+    }
     if (fields.uploaderName) prefixParts.push(fields.uploaderName);
     const finalName = (prefixParts.length ? prefixParts.join('_') + '_' : '') + filename;
 
