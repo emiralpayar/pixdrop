@@ -36,8 +36,6 @@ export default async function handler(req, res) {
     });
   } catch (err) { 
     console.error('Failed to parse GOOGLE_SERVICE_ACCOUNT JSON:', err.message);
-    console.error('Raw content length:', raw.length);
-    console.error('First 100 chars:', raw.substring(0, 100));
     return res.status(500).json({ error: 'Invalid GOOGLE_SERVICE_ACCOUNT JSON', details: err.message }); 
   }
 
@@ -51,6 +49,8 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: 'Invalid service account format' });
   }
 
+  let tmpFilePath = null;
+
   try {
     // Use dynamic imports for ESM
     const { google } = await import('googleapis');
@@ -59,14 +59,10 @@ export default async function handler(req, res) {
     const os = await import('node:os');
     const path = await import('node:path');
 
-    // Create JWT auth with correct scopes
-    console.log('Creating Google Auth...');
-    const auth = new google.auth.JWT(
-      svc.client_email,
-      null,
-      svc.private_key.replace(/\\n/g, '\n'), // Fix newlines in private key
-      ['https://www.googleapis.com/auth/drive.file'] // Correct scope
-    );
+    // Create auth using the working fromJSON method
+    console.log('Creating Google Auth with fromJSON method...');
+    const auth = google.auth.fromJSON(svc);
+    auth.scopes = ['https://www.googleapis.com/auth/drive.file'];
 
     // Test authentication
     console.log('Testing Google Auth...');
@@ -76,7 +72,6 @@ export default async function handler(req, res) {
     const drive = google.drive({ version: 'v3', auth });
 
     // Parse multipart form data
-    let tmpFilePath = null;
     let filename = 'upload.bin';
     let contentType = 'application/octet-stream';
     const fields = {};
@@ -164,7 +159,10 @@ export default async function handler(req, res) {
     console.error('Drive upload error:', err?.message || err);
     console.error('Full error:', err);
     if (tmpFilePath) {
-      try { fs.unlinkSync(tmpFilePath); } catch {}
+      try { 
+        const fs = await import('node:fs');
+        fs.unlinkSync(tmpFilePath); 
+      } catch {}
     }
     return res.status(500).json({ 
       error: 'Drive upload failed', 
