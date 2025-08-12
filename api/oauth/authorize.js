@@ -19,8 +19,12 @@ export default async function handler(req, res) {
     const authUrl = oauth2Client.generateAuthUrl({
       access_type: 'offline', // Important: gets refresh token
       scope: scopes,
-      prompt: 'consent' // Forces consent screen to get refresh token
+      prompt: 'consent', // Forces consent screen to get refresh token
+      include_granted_scopes: true,
+      state: Date.now().toString() // Add state for security
     });
+
+    console.log('Generated auth URL:', authUrl);
 
     // Redirect to Google's OAuth consent screen
     return res.redirect(authUrl);
