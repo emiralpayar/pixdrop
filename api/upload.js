@@ -10,43 +10,24 @@ export default async function handler(req, res) {
 
   // Debug environment variables
   console.log('Environment debug:', {
-    hasServiceAccount: !!process.env.GOOGLE_SERVICE_ACCOUNT,
-    serviceAccountLength: process.env.GOOGLE_SERVICE_ACCOUNT?.length,
+    hasClientId: !!process.env.GOOGLE_OAUTH_CLIENT_ID,
+    hasClientSecret: !!process.env.GOOGLE_OAUTH_CLIENT_SECRET,
+    hasRefreshToken: !!process.env.GOOGLE_REFRESH_TOKEN,
     hasFolderId: !!process.env.DRIVE_FOLDER_ID,
     folderId: process.env.DRIVE_FOLDER_ID,
     hasPublicSetting: !!process.env.DRIVE_PUBLIC,
     publicSetting: process.env.DRIVE_PUBLIC
   });
 
-  const raw = process.env.GOOGLE_SERVICE_ACCOUNT || '';
-  if (!raw) {
-    console.error('GOOGLE_SERVICE_ACCOUNT environment variable not set');
-    return res.status(500).json({ error: 'Google service account not configured' });
+  if (!process.env.GOOGLE_OAUTH_CLIENT_ID || !process.env.GOOGLE_OAUTH_CLIENT_SECRET) {
+    return res.status(500).json({ error: 'Google OAuth credentials not configured' });
   }
 
-  let svc;
-  try { 
-    svc = JSON.parse(raw); 
-    console.log('Service account parsed successfully:', {
-      type: svc.type,
-      project_id: svc.project_id,
-      client_email: svc.client_email,
-      hasPrivateKey: !!svc.private_key,
-      privateKeyLength: svc.private_key?.length
+  if (!process.env.GOOGLE_REFRESH_TOKEN) {
+    return res.status(500).json({ 
+      error: 'Google refresh token not configured',
+      instructions: 'Visit /api/oauth/authorize to set up OAuth'
     });
-  } catch (err) { 
-    console.error('Failed to parse GOOGLE_SERVICE_ACCOUNT JSON:', err.message);
-    return res.status(500).json({ error: 'Invalid GOOGLE_SERVICE_ACCOUNT JSON', details: err.message }); 
-  }
-
-  // Validate required fields
-  if (!svc.client_email || !svc.private_key || !svc.project_id) {
-    console.error('Missing required fields in service account:', {
-      has_client_email: !!svc.client_email,
-      has_private_key: !!svc.private_key,
-      has_project_id: !!svc.project_id
-    });
-    return res.status(500).json({ error: 'Invalid service account format' });
   }
 
   let tmpFilePath = null;
@@ -59,17 +40,22 @@ export default async function handler(req, res) {
     const os = await import('node:os');
     const path = await import('node:path');
 
-    // Create auth using the working fromJSON method
-    console.log('Creating Google Auth with fromJSON method...');
-    const auth = google.auth.fromJSON(svc);
-    auth.scopes = ['https://www.googleapis.com/auth/drive.file'];
+    // Create OAuth2 client
+    console.log('Creating Google OAuth2 client...');
+    const oauth2Client = new google.auth.OAuth2(
+      process.env.GOOGLE_OAUTH_CLIENT_ID,
+      process.env.GOOGLE_OAUTH_CLIENT_SECRET,
+      `${process.env.PUBLIC_BASE_URL || 'https://www.pixdrop.cloud'}/api/oauth/callback`
+    );
 
-    // Test authentication
-    console.log('Testing Google Auth...');
-    await auth.authorize();
-    console.log('Google auth successful');
+    // Set the refresh token
+    oauth2Client.setCredentials({
+      refresh_token: process.env.GOOGLE_REFRESH_TOKEN
+    });
 
-    const drive = google.drive({ version: 'v3', auth });
+    console.log('OAuth2 client configured with refresh token');
+
+    const drive = google.drive({ version: 'v3', auth: oauth2Client });
 
     // Parse multipart form data
     let filename = 'upload.bin';
@@ -123,6 +109,7 @@ export default async function handler(req, res) {
 
     console.log('Final filename:', finalName);
 
+    // Upload to shared drive
     const createRes = await drive.files.create({
       requestBody: { 
         name: finalName, 
@@ -132,7 +119,8 @@ export default async function handler(req, res) {
         mimeType: contentType, 
         body: fs.createReadStream(tmpFilePath) 
       },
-      fields: 'id,name,webViewLink,webContentLink'
+      fields: 'id,name,webViewLink,webContentLink',
+      supportsAllDrives: true  // For shared drives
     });
 
     console.log('File uploaded successfully:', createRes.data);
@@ -144,7 +132,8 @@ export default async function handler(req, res) {
       try {
         await drive.permissions.create({
           fileId,
-          requestBody: { role: 'reader', type: 'anyone' }
+          requestBody: { role: 'reader', type: 'anyone' },
+          supportsAllDrives: true
         });
         console.log('File made public');
       } catch (e) {

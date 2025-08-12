@@ -1,22 +1,19 @@
 // ESM – Vercel Node Function
-export default function handler(req, res) {
+export default async function handler(req, res) {
   const allowed = ['https://pixdrop.cloud', 'https://www.pixdrop.cloud'];
   const origin = req.headers.origin || '';
   if (allowed.includes(origin)) res.setHeader('Access-Control-Allow-Origin', origin);
-  res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS');
+  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   if (req.method === 'OPTIONS') return res.status(204).end();
+  if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
 
-  const raw = process.env.GOOGLE_SERVICE_ACCOUNT || '';
-  let parsed = null;
-  try { parsed = JSON.parse(raw); } catch {}
-  const hasServiceAccount = !!(parsed && parsed.client_email && parsed.private_key);
-
-  res.setHeader('Content-Type', 'application/json');
-  res.status(200).send(JSON.stringify({
-    hasServiceAccount,
-    folderId: process.env.DRIVE_FOLDER_ID || null,
-    backendUrl: process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : '',
-    timestamp: new Date().toISOString()
-  }));
+  res.json({
+    folderId: process.env.DRIVE_FOLDER_ID || '',
+    hasOAuthCredentials: !!(process.env.GOOGLE_OAUTH_CLIENT_ID && process.env.GOOGLE_OAUTH_CLIENT_SECRET),
+    hasRefreshToken: !!process.env.GOOGLE_REFRESH_TOKEN,
+    backendUrl: req.headers.host,
+    timestamp: new Date().toISOString(),
+    authMethod: 'OAuth2'
+  });
 }
