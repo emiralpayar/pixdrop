@@ -1,4 +1,9 @@
-import { kv } from '@vercel/kv';
+import { Redis } from '@upstash/redis';
+
+const redis = new Redis({
+  url: process.env.KV_REST_API_URL,
+  token: process.env.KV_REST_API_TOKEN,
+});
 
 const EVENTS_KEY = 'pixdrop:events';
 
@@ -17,11 +22,9 @@ export default async function handler(req, res) {
   try {
     console.log('Looking for event:', eventName);
     
-    // Get events from KV storage
-    const events = await kv.get(EVENTS_KEY) || [];
-    console.log('Found events in KV:', events.length);
+    const events = await redis.get(EVENTS_KEY) || [];
+    console.log('Found events in Redis:', events.length);
     
-    // Find event by name or slug
     const event = events.find(e => {
       const slug = e.name.toLowerCase().replace(/[^a-z0-9]/g, '');
       return e.name.toLowerCase() === eventName.toLowerCase() || 
@@ -30,7 +33,7 @@ export default async function handler(req, res) {
     });
 
     if (!event) {
-      console.log('Event not found in KV, available events:', events.map(e => e.name));
+      console.log('Event not found in Redis, available events:', events.map(e => e.name));
       return res.status(404).json({ 
         error: 'Event not found',
         availableEvents: events.map(e => e.name)
@@ -41,7 +44,7 @@ export default async function handler(req, res) {
     return res.json(event);
 
   } catch (error) {
-    console.error('Failed to lookup event in KV:', error);
+    console.error('Failed to lookup event in Redis:', error);
     return res.status(500).json({ 
       error: 'Failed to lookup event',
       details: error.message

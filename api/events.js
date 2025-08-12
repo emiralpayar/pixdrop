@@ -1,10 +1,10 @@
 import { Redis } from '@upstash/redis';
 import { createEventFolder, checkFolderExists } from './utils/drive-folder.js';
 
-// Initialize Redis client
+// Use the KV REST API variables that you have
 const redis = new Redis({
-  url: process.env.UPSTASH_REDIS_REST_URL,
-  token: process.env.UPSTASH_REDIS_REST_TOKEN,
+  url: process.env.KV_REST_API_URL,
+  token: process.env.KV_REST_API_TOKEN,
 });
 
 const EVENTS_KEY = 'pixdrop:events';

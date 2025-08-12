@@ -1,8 +1,8 @@
 import { Redis } from '@upstash/redis';
 
 const redis = new Redis({
-  url: process.env.UPSTASH_REDIS_REST_URL,
-  token: process.env.UPSTASH_REDIS_REST_TOKEN,
+  url: process.env.KV_REST_API_URL,
+  token: process.env.KV_REST_API_TOKEN,
 });
 
 const EVENTS_KEY = 'pixdrop:events';
@@ -26,8 +26,9 @@ export default async function handler(req, res) {
       events: events,
       testWrite: testValue,
       envVars: {
-        hasUpstashUrl: !!process.env.UPSTASH_REDIS_REST_URL,
-        hasUpstashToken: !!process.env.UPSTASH_REDIS_REST_TOKEN
+        hasKvUrl: !!process.env.KV_REST_API_URL,
+        hasKvToken: !!process.env.KV_REST_API_TOKEN,
+        hasRedisUrl: !!process.env.REDIS_URL
       }
     });
     
@@ -38,8 +39,9 @@ export default async function handler(req, res) {
       error: error.message,
       details: error.toString(),
       envVars: {
-        hasUpstashUrl: !!process.env.UPSTASH_REDIS_REST_URL,
-        hasUpstashToken: !!process.env.UPSTASH_REDIS_REST_TOKEN
+        hasKvUrl: !!process.env.KV_REST_API_URL,
+        hasKvToken: !!process.env.KV_REST_API_TOKEN,
+        hasRedisUrl: !!process.env.REDIS_URL
       }
     });
   }
