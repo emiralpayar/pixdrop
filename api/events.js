@@ -1,5 +1,11 @@
-import { kv } from '@vercel/kv';
+import { Redis } from '@upstash/redis';
 import { createEventFolder, checkFolderExists } from './utils/drive-folder.js';
+
+// Initialize Redis client
+const redis = new Redis({
+  url: process.env.UPSTASH_REDIS_REST_URL,
+  token: process.env.UPSTASH_REDIS_REST_TOKEN,
+});
 
 const EVENTS_KEY = 'pixdrop:events';
 
@@ -13,12 +19,12 @@ export default async function handler(req, res) {
 
   if (req.method === 'GET') {
     try {
-      const events = await kv.get(EVENTS_KEY) || [];
-      console.log('Retrieved events from KV:', events.length);
+      const events = await redis.get(EVENTS_KEY) || [];
+      console.log('Retrieved events from Redis:', events.length);
       return res.json(events);
     } catch (error) {
-      console.error('Failed to get events from KV:', error);
-      return res.json([]); // Return empty array on error
+      console.error('Failed to get events from Redis:', error);
+      return res.json([]);
     }
   }
 
@@ -27,11 +33,9 @@ export default async function handler(req, res) {
     if (!name) return res.status(400).json({ error: 'Name is required' });
 
     try {
-      // Get existing events from KV
-      const events = await kv.get(EVENTS_KEY) || [];
-      console.log('Current events in KV:', events.length);
+      const events = await redis.get(EVENTS_KEY) || [];
+      console.log('Current events in Redis:', events.length);
       
-      // Check if event already exists
       const existingEvent = events.find(e => e.name.toLowerCase() === name.toLowerCase());
       if (existingEvent) {
         return res.status(400).json({ error: 'Event with this name already exists' });
@@ -56,7 +60,6 @@ export default async function handler(req, res) {
             folderWebViewLink = folder.webViewLink;
             console.log('Created new folder:', folder);
           }
-          
         } catch (folderError) {
           console.error('Failed to create folder, using default:', folderError);
         }
@@ -74,13 +77,10 @@ export default async function handler(req, res) {
         hasCustomFolder: eventFolderId !== process.env.DRIVE_FOLDER_ID
       };
 
-      // Add to events array and save to KV
       events.push(event);
-      await kv.set(EVENTS_KEY, events);
+      await redis.set(EVENTS_KEY, events);
       
-      console.log('Created event and saved to KV:', event);
-      console.log('Total events now in KV:', events.length);
-      
+      console.log('Created event and saved to Redis:', event);
       return res.json(event);
       
     } catch (error) {
@@ -94,19 +94,19 @@ export default async function handler(req, res) {
     if (!id) return res.status(400).json({ error: 'Event ID is required' });
 
     try {
-      const events = await kv.get(EVENTS_KEY) || [];
+      const events = await redis.get(EVENTS_KEY) || [];
       const filteredEvents = events.filter(e => e.id !== id);
       
       if (events.length === filteredEvents.length) {
         return res.status(404).json({ error: 'Event not found' });
       }
       
-      await kv.set(EVENTS_KEY, filteredEvents);
+      await redis.set(EVENTS_KEY, filteredEvents);
       console.log('Deleted event, remaining events:', filteredEvents.length);
       return res.json({ success: true });
       
     } catch (error) {
-      console.error('Failed to delete event from KV:', error);
+      console.error('Failed to delete event from Redis:', error);
       return res.status(500).json({ error: 'Failed to delete event' });
     }
   }
