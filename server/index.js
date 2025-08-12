@@ -162,6 +162,11 @@ app.post('/upload', upload.single('file'), async (req, res) => {
   }
 });
 
+// Serve event page for path-based URLs
+app.get('/event/:slug', (req, res) => {
+  res.sendFile(path.join(__dirname, '..', 'index.html'));
+});
+
 const port = process.env.PORT || 3001;
 app.listen(port, () => {
   console.log(`PixDrop server listening on port ${port}`);

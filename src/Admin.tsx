@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react'
 
 const BACKEND_URL = import.meta.env?.VITE_API_BASE || ''
+const BASE_DOMAIN = import.meta.env?.VITE_BASE_DOMAIN || ''
 const slugify = (s: string) => s.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')
 
 interface EventItem {
@@ -103,7 +104,17 @@ export default function Admin() {
                     <div>
                       <div className="font-medium">{ev.name}</div>
                       <div className="text-sm text-slate-600">
-                        Link: <a href={`https://${ev.slug}.pixdrop.cloud`} target="_blank" rel="noreferrer" className="text-sky-600 underline">{ev.slug}.pixdrop.cloud</a>
+                        {(() => {
+                          const url = BASE_DOMAIN
+                            ? `https://${ev.slug}.${BASE_DOMAIN}`
+                            : `https://pixdrop.cloud/event/${ev.slug}`
+                          const label = BASE_DOMAIN
+                            ? `${ev.slug}.${BASE_DOMAIN}`
+                            : `pixdrop.cloud/event/${ev.slug}`
+                          return (
+                            <>Link: <a href={url} target="_blank" rel="noreferrer" className="text-sky-600 underline">{label}</a></>
+                          )
+                        })()}
                       </div>
                       <div className="text-xs text-slate-500">Folder ID: {ev.folderId}</div>
                     </div>
