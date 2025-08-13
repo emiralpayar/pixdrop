@@ -20,23 +20,29 @@ export default async function handler(req, res) {
   if (!eventName) return res.status(400).json({ error: 'Event name is required' });
 
   try {
+    console.log('Event lookup request:', { eventName, method: req.method, headers: req.headers.origin });
     console.log('Looking for event:', eventName);
     
     const events = await redis.get(EVENTS_KEY) || [];
     console.log('Found events in Redis:', events.length);
     
     const event = events.find(e => {
-      const slug = e.name.toLowerCase().replace(/[^a-z0-9]/g, '');
-      return e.name.toLowerCase() === eventName.toLowerCase() || 
-             e.slug === eventName.toLowerCase() ||
-             slug === eventName.toLowerCase();
+      const slug = e.name?.toLowerCase().replace(/[^a-z0-9]/g, '');
+      const matches = {
+        exactName: e.name?.toLowerCase() === eventName?.toLowerCase(),
+        slugMatch: e.slug === eventName?.toLowerCase(),
+        nameSlugMatch: slug === eventName?.toLowerCase()
+      };
+      console.log(`Checking event "${e.name}":`, matches);
+      return matches.exactName || matches.slugMatch || matches.nameSlugMatch;
     });
 
     if (!event) {
-      console.log('Event not found in Redis, available events:', events.map(e => e.name));
+      console.log('Event not found in Redis, available events:', events.map(e => ({ name: e.name, slug: e.slug })));
       return res.status(404).json({ 
         error: 'Event not found',
-        availableEvents: events.map(e => e.name)
+        availableEvents: events.map(e => e.name),
+        requestedEvent: eventName
       });
     }
 
