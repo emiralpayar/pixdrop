@@ -54,7 +54,8 @@ export default function App() {
   useEffect(() => {
     if (isEventPage && eventName) {
       setEventLoading(true)
-      const apiUrl = BACKEND_URL ? `${BACKEND_URL}/api/events/${eventName}` : `/api/events/${eventName}`
+      // Force absolute path to prevent any URL construction issues
+      const apiUrl = `/api/events/${eventName}`
       console.log('Fetching event from:', apiUrl)
       fetch(apiUrl)
         .then(res => res.json())
@@ -169,7 +170,8 @@ export default function App() {
       
       if (uploaderName) form.append('uploaderName', uploaderName)
 
-      const uploadUrl = BACKEND_URL ? `${BACKEND_URL}/api/upload` : `/api/upload`
+      // Force absolute path to prevent any URL construction issues
+      const uploadUrl = `/api/upload`
       console.log('Uploading to:', uploadUrl)
       const res = await fetch(uploadUrl, {
         method: 'POST',

@@ -28,13 +28,12 @@ export default function Admin() {
   const [activeTab, setActiveTab] = useState<'events' | 'status'>('events')
 
   const load = () => {
-    const eventsUrl = BACKEND_URL ? `${BACKEND_URL}/events` : `/api/events`
-    fetch(eventsUrl).then(r => r.json()).then(setEvents).catch(() => setEvents([]))
+    // Force absolute paths to prevent any URL construction issues
+    fetch(`/api/events`).then(r => r.json()).then(setEvents).catch(() => setEvents([]))
   }
 
   const loadStatus = () => {
-    const statusUrl = BACKEND_URL ? `${BACKEND_URL}/admin/status` : `/api/admin/status`
-    fetch(statusUrl)
+    fetch(`/api/admin/status`)
       .then(r => r.json())
       .then(setStatus)
       .catch(() => setStatus(null))
@@ -49,8 +48,8 @@ export default function Admin() {
     e.preventDefault()
     if (!form.name) return
     const method = form.id ? 'PUT' : 'POST'
-    const baseUrl = BACKEND_URL ? `${BACKEND_URL}/events` : `/api/events`
-    const url = form.id ? `${baseUrl}/${form.id}` : baseUrl
+    // Force absolute paths to prevent any URL construction issues  
+    const url = form.id ? `/api/events/${form.id}` : `/api/events`
     const payload: any = { name: form.name }
     if (form.slug) payload.slug = form.slug
     await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
@@ -60,8 +59,8 @@ export default function Admin() {
 
   const edit = (ev: EventItem) => setForm({ id: ev.id, name: ev.name, slug: ev.slug })
   const del = async (id: string) => { 
-    const deleteUrl = BACKEND_URL ? `${BACKEND_URL}/events/${id}` : `/api/events/${id}`
-    await fetch(deleteUrl, { method: 'DELETE' }); 
+    // Force absolute path to prevent any URL construction issues
+    await fetch(`/api/events/${id}`, { method: 'DELETE' }); 
     load() 
   }
 
