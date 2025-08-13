@@ -17,6 +17,15 @@ type Event = {
   hasCustomFolder: boolean
 }
 
+type Photo = {
+  id: string
+  name: string
+  mimeType: string
+  directLink: string
+  thumbnailLink: string
+  createdTime: string
+}
+
 type Item = {
   id: string
   file: File
@@ -38,6 +47,8 @@ export default function App() {
 
   const [event, setEvent] = useState<Event | null>(null)
   const [eventLoading, setEventLoading] = useState(isEventPage)
+  const [photos, setPhotos] = useState<Photo[]>([])
+  const [photosLoading, setPhotosLoading] = useState(false)
   const [files, setFiles] = useState<Item[]>([])
   const [dragActive, setDragActive] = useState(false)
   const [compress, setCompress] = useState(true)
@@ -65,6 +76,8 @@ export default function App() {
           } else {
             setEvent(data)
             setWeddingCode(data.name)
+            // Load photos for this event
+            loadEventPhotos(data.folderId)
           }
         })
         .catch(err => {
@@ -74,6 +87,24 @@ export default function App() {
         .finally(() => setEventLoading(false))
     }
   }, [isEventPage, eventName])
+
+  // Load photos from event folder
+  const loadEventPhotos = async (folderId: string) => {
+    if (!folderId) return
+    
+    setPhotosLoading(true)
+    try {
+      const response = await fetch(`/api/photos?folderId=${folderId}`)
+      const data = await response.json()
+      if (data.success) {
+        setPhotos(data.photos)
+      }
+    } catch (error) {
+      console.error('Failed to load photos:', error)
+    } finally {
+      setPhotosLoading(false)
+    }
+  }
 
   useEffect(() => {
     const url = window.location.origin + window.location.pathname
@@ -231,7 +262,49 @@ export default function App() {
 
   return (
     <div className="app-container">
-      <div className="mx-auto max-w-6xl p-6 md:p-10">
+      {/* Floating Photo Gallery */}
+      {isEventPage && photos.length > 0 && (
+        <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
+          {photos.slice(0, 12).map((photo, index) => (
+            <motion.div
+              key={photo.id}
+              className="absolute pointer-events-none opacity-10 hover:opacity-30 transition-opacity"
+              initial={{ 
+                x: Math.random() * window.innerWidth,
+                y: Math.random() * window.innerHeight,
+                rotate: Math.random() * 360,
+                scale: 0
+              }}
+              animate={{ 
+                x: Math.random() * (window.innerWidth - 200),
+                y: Math.random() * (window.innerHeight - 200),
+                rotate: Math.random() * 360,
+                scale: 0.8 + Math.random() * 0.4
+              }}
+              transition={{ 
+                duration: 20 + Math.random() * 20,
+                repeat: Infinity,
+                repeatType: "reverse",
+                ease: "linear",
+                delay: index * 2
+              }}
+              style={{
+                width: '120px',
+                height: '120px',
+              }}
+            >
+              <img
+                src={photo.directLink}
+                alt={photo.name}
+                className="w-full h-full object-cover rounded-lg shadow-lg"
+                loading="lazy"
+              />
+            </motion.div>
+          ))}
+        </div>
+      )}
+      
+      <div className="mx-auto max-w-6xl p-6 md:p-10 relative z-10">
         <header className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-6">
           <div>
             <div className="text-3xl md:text-4xl font-semibold tracking-tight">
@@ -268,6 +341,47 @@ export default function App() {
             )}
           </div>
         </header>
+
+        {/* Photo Gallery Preview */}
+        {isEventPage && photos.length > 0 && (
+          <div className="mb-6 rounded-2xl border bg-white shadow-sm border-slate-200">
+            <div className="p-5 md:p-6 border-b">
+              <div className="flex items-center justify-between">
+                <span className="font-medium">Recent Photos</span>
+                <span className="text-xs px-2 py-1 rounded-full bg-slate-100 text-slate-700">
+                  {photos.length} uploaded
+                </span>
+              </div>
+            </div>
+            <div className="p-5 md:p-6">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
+                {photos.slice(0, 12).map((photo) => (
+                  <motion.div
+                    key={photo.id}
+                    className="aspect-square rounded-lg overflow-hidden bg-slate-100 cursor-pointer group"
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => window.open(photo.directLink, '_blank')}
+                  >
+                    <img
+                      src={photo.directLink}
+                      alt={photo.name}
+                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-200"
+                      loading="lazy"
+                    />
+                  </motion.div>
+                ))}
+              </div>
+              {photos.length > 12 && (
+                <div className="mt-4 text-center">
+                  <p className="text-sm text-slate-500">
+                    And {photos.length - 12} more photos...
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         <div className="rounded-2xl border bg-white shadow-sm border-slate-200">
           <div className="p-5 md:p-6 border-b">

@@ -2,7 +2,22 @@ import React, { useEffect, useState } from 'react'
 
 const BACKEND_URL = import.meta.env?.VITE_API_BASE || ''
 const BASE_DOMAIN = import.meta.env?.VITE_BASE_DOMAIN || ''
-const slugify = (s: string) => s.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')
+const slugify = (s: string) => {
+  return s
+    .toLowerCase()
+    .trim()
+    // Replace Turkish characters
+    .replace(/ğ/g, 'g')
+    .replace(/ü/g, 'u')
+    .replace(/ş/g, 's')
+    .replace(/ı/g, 'i')
+    .replace(/ö/g, 'o')
+    .replace(/ç/g, 'c')
+    // Replace spaces and special characters with underscores
+    .replace(/[^a-z0-9]+/g, '_')
+    // Remove leading/trailing underscores
+    .replace(/^_+|_+$/g, '')
+}
 
 interface EventItem {
   id: string
@@ -92,8 +107,21 @@ export default function Admin() {
         <div>
           <form onSubmit={submit} className="space-y-2 mb-6 p-4 border rounded-lg bg-slate-50">
             <h2 className="text-lg font-medium mb-2">Add/Edit Event</h2>
-            <input className="w-full border p-2 rounded" placeholder="Event Name" value={form.name||''} onChange={e=>{const name=e.target.value; setForm(f=>({...f, name, slug: f.slug||slugify(name)}))}} />
-            <input className="w-full border p-2 rounded" placeholder="Slug (subdomain)" value={form.slug||''} onChange={e=>setForm({...form, slug:e.target.value})} />
+            <input 
+              className="w-full border p-2 rounded" 
+              placeholder="Event Name" 
+              value={form.name||''} 
+              onChange={e=>{
+                const name=e.target.value; 
+                setForm(f=>({...f, name, slug: slugify(name)}))
+              }} 
+            />
+            <input 
+              className="w-full border p-2 rounded" 
+              placeholder="Slug (URL-friendly name)" 
+              value={form.slug||''} 
+              onChange={e=>setForm({...form, slug:e.target.value})} 
+            />
             <div className="flex gap-2">
               <button className="px-4 py-2 bg-sky-500 text-white rounded hover:bg-sky-600" type="submit">
                 {form.id? 'Update':'Add'} Event

@@ -65,7 +65,21 @@ export default async function handler(req, res) {
         }
       }
 
-      const slug = name.trim().toLowerCase().replace(/[^a-z0-9]/g, '');
+      // Improved slug generation to match frontend
+      const slug = name.trim()
+        .toLowerCase()
+        // Replace Turkish characters  
+        .replace(/ğ/g, 'g')
+        .replace(/ü/g, 'u')
+        .replace(/ş/g, 's')
+        .replace(/ı/g, 'i')
+        .replace(/ö/g, 'o')
+        .replace(/ç/g, 'c')
+        // Replace spaces and special characters with underscores
+        .replace(/[^a-z0-9]+/g, '_')
+        // Remove leading/trailing underscores
+        .replace(/^_+|_+$/g, '');
+        
       const event = {
         id: Date.now().toString(),
         name: name.trim(),
