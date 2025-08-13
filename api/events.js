@@ -90,30 +90,35 @@ export default async function handler(req, res) {
   }
 
   if (req.method === 'DELETE') {
-    // Support both URL parameter and request body for event ID
-    const eventId = req.query.id || req.body?.id;
-    
-    if (!eventId) {
-      return res.status(400).json({ error: 'Event ID is required' });
-    }
+    try {
+      // Support both URL parameter and request body for event ID
+      const eventId = req.query.id || req.body?.id;
+      
+      if (!eventId) {
+        return res.status(400).json({ error: 'Event ID is required' });
+      }
 
-    const events = await redis.get(EVENTS_KEY) || [];
-    const initialLength = events.length;
-    const updatedEvents = events.filter(event => event.id !== eventId);
-    
-    if (events.length === updatedEvents.length) {
-      return res.status(404).json({ error: 'Event not found' });
-    }
+      const events = await redis.get(EVENTS_KEY) || [];
+      const initialLength = events.length;
+      const updatedEvents = events.filter(event => event.id !== eventId);
+      
+      if (events.length === updatedEvents.length) {
+        return res.status(404).json({ error: 'Event not found' });
+      }
 
-    await redis.set(EVENTS_KEY, updatedEvents);
-    
-    console.log(`Event deleted successfully: ${eventId}`);
-    return res.json({ 
-      success: true, 
-      message: 'Event deleted successfully',
-      deletedEventId: eventId,
-      remainingEvents: updatedEvents.length
-    });
+      await redis.set(EVENTS_KEY, updatedEvents);
+      
+      console.log(`Event deleted successfully: ${eventId}`);
+      return res.json({ 
+        success: true, 
+        message: 'Event deleted successfully',
+        deletedEventId: eventId,
+        remainingEvents: updatedEvents.length
+      });
+    } catch (error) {
+      console.error('Failed to delete event:', error);
+      return res.status(500).json({ error: 'Failed to delete event', details: error.message });
+    }
   }
 
   return res.status(405).json({ error: 'Method not allowed' });

@@ -59,8 +59,12 @@ export default function Admin() {
 
   const edit = (ev: EventItem) => setForm({ id: ev.id, name: ev.name, slug: ev.slug })
   const del = async (id: string) => { 
-    // Force absolute path to prevent any URL construction issues
-    await fetch(`/api/events/${id}`, { method: 'DELETE' }); 
+    // Send DELETE request to /api/events with ID in request body
+    await fetch(`/api/events`, { 
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id })
+    }); 
     load() 
   }
 
