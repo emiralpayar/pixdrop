@@ -13,7 +13,10 @@ interface EventItem {
 
 interface AdminStatus {
   folderId: string
-  hasServiceAccount: boolean
+  isAuthenticated: boolean
+  authMethod: string
+  hasOAuthCredentials: boolean
+  hasRefreshToken: boolean
   backendUrl: string
   timestamp: string
 }
@@ -146,13 +149,19 @@ export default function Admin() {
             <div className="p-4 rounded-lg border bg-white">
               <h2 className="font-medium mb-3">Google Drive Integration</h2>
               <div className="flex items-center gap-2 mb-2">
-                <div className={`w-3 h-3 rounded-full ${status?.hasServiceAccount ? 'bg-green-500' : 'bg-red-500'}`}></div>
+                <div className={`w-3 h-3 rounded-full ${status?.isAuthenticated ? 'bg-green-500' : 'bg-red-500'}`}></div>
                 <span className="text-sm">
-                  {status?.hasServiceAccount ? 'Service account configured' : 'No service account'}
+                  {status?.isAuthenticated ? `Connected (${status.authMethod})` : 'Not authenticated'}
                 </span>
               </div>
               {status?.folderId && (
                 <p className="text-xs text-slate-500">Default Folder: {status.folderId}</p>
+              )}
+              {status && (
+                <div className="text-xs text-slate-500 mt-2 space-y-1">
+                  <div>OAuth Credentials: {status.hasOAuthCredentials ? '✓' : '✗'}</div>
+                  <div>Refresh Token: {status.hasRefreshToken ? '✓' : '✗'}</div>
+                </div>
               )}
             </div>
 
