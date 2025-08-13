@@ -90,14 +90,25 @@ export default function App() {
 
   // Load photos from event folder
   const loadEventPhotos = async (folderId: string) => {
-    if (!folderId) return
+    if (!folderId) {
+      console.log('No folder ID provided for photo loading')
+      return
+    }
     
+    console.log('Loading photos for folder ID:', folderId)
     setPhotosLoading(true)
     try {
-      const response = await fetch(`/api/photos?folderId=${folderId}`)
+      const url = `/api/photos?folderId=${folderId}`
+      console.log('Fetching photos from:', url)
+      const response = await fetch(url)
       const data = await response.json()
+      console.log('Photos API response:', data)
+      
       if (data.success) {
+        console.log(`Loaded ${data.photos.length} photos`)
         setPhotos(data.photos)
+      } else {
+        console.error('Photos API returned error:', data)
       }
     } catch (error) {
       console.error('Failed to load photos:', error)
@@ -343,41 +354,69 @@ export default function App() {
         </header>
 
         {/* Photo Gallery Preview */}
-        {isEventPage && photos.length > 0 && (
+        {isEventPage && (photos.length > 0 || photosLoading) && (
           <div className="mb-6 rounded-2xl border bg-white shadow-sm border-slate-200">
             <div className="p-5 md:p-6 border-b">
               <div className="flex items-center justify-between">
                 <span className="font-medium">Recent Photos</span>
-                <span className="text-xs px-2 py-1 rounded-full bg-slate-100 text-slate-700">
-                  {photos.length} uploaded
-                </span>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => event?.folderId && loadEventPhotos(event.folderId)}
+                    className="text-xs px-2 py-1 rounded-full bg-sky-100 text-sky-700 hover:bg-sky-200"
+                    disabled={photosLoading}
+                  >
+                    {photosLoading ? 'Loading...' : 'Refresh'}
+                  </button>
+                  <span className="text-xs px-2 py-1 rounded-full bg-slate-100 text-slate-700">
+                    {photosLoading ? 'Loading...' : `${photos.length} uploaded`}
+                  </span>
+                </div>
               </div>
             </div>
             <div className="p-5 md:p-6">
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
-                {photos.slice(0, 12).map((photo) => (
-                  <motion.div
-                    key={photo.id}
-                    className="aspect-square rounded-lg overflow-hidden bg-slate-100 cursor-pointer group"
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={() => window.open(photo.directLink, '_blank')}
-                  >
-                    <img
-                      src={photo.directLink}
-                      alt={photo.name}
-                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-200"
-                      loading="lazy"
-                    />
-                  </motion.div>
-                ))}
-              </div>
-              {photos.length > 12 && (
-                <div className="mt-4 text-center">
-                  <p className="text-sm text-slate-500">
-                    And {photos.length - 12} more photos...
-                  </p>
+              {photosLoading ? (
+                <div className="text-center py-8 text-slate-500">
+                  Loading photos...
                 </div>
+              ) : photos.length === 0 ? (
+                <div className="text-center py-8 text-slate-500">
+                  No photos uploaded yet. Upload some photos and refresh!
+                </div>
+              ) : (
+                <>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
+                    {photos.slice(0, 12).map((photo) => (
+                      <motion.div
+                        key={photo.id}
+                        className="aspect-square rounded-lg overflow-hidden bg-slate-100 cursor-pointer group"
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={() => window.open(photo.directLink, '_blank')}
+                      >
+                        <img
+                          src={photo.directLink}
+                          alt={photo.name}
+                          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-200"
+                          loading="lazy"
+                          onError={(e) => {
+                            console.error('Failed to load image:', photo.directLink);
+                            // Fallback to thumbnail link if available
+                            if (photo.thumbnailLink && e.currentTarget.src !== photo.thumbnailLink) {
+                              e.currentTarget.src = photo.thumbnailLink;
+                            }
+                          }}
+                        />
+                      </motion.div>
+                    ))}
+                  </div>
+                  {photos.length > 12 && (
+                    <div className="mt-4 text-center">
+                      <p className="text-sm text-slate-500">
+                        And {photos.length - 12} more photos...
+                      </p>
+                    </div>
+                  )}
+                </>
               )}
             </div>
           </div>

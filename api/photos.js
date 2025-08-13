@@ -24,6 +24,8 @@ export default async function handler(req, res) {
   }
 
   try {
+    console.log('Fetching photos for folder:', folderId);
+    
     // Create OAuth2 client
     const oauth2Client = new google.auth.OAuth2(
       process.env.GOOGLE_OAUTH_CLIENT_ID,
@@ -39,6 +41,7 @@ export default async function handler(req, res) {
     const drive = google.drive({ version: 'v3', auth: oauth2Client });
 
     // Fetch files from the folder
+    console.log('Querying Google Drive for images in folder:', folderId);
     const response = await drive.files.list({
       q: `'${folderId}' in parents and trashed=false and (mimeType contains 'image/')`,
       fields: 'files(id,name,mimeType,webViewLink,webContentLink,thumbnailLink,createdTime)',
@@ -47,23 +50,32 @@ export default async function handler(req, res) {
     });
 
     const photos = response.data.files || [];
+    console.log(`Found ${photos.length} photos in folder ${folderId}`);
 
     // Generate thumbnail URLs for the photos
-    const photosWithThumbnails = photos.map(photo => ({
-      id: photo.id,
-      name: photo.name,
-      mimeType: photo.mimeType,
-      webViewLink: photo.webViewLink,
-      thumbnailLink: photo.thumbnailLink,
-      // Create a direct view URL for the image
-      directLink: `https://drive.google.com/uc?id=${photo.id}`,
-      createdTime: photo.createdTime
-    }));
+    const photosWithThumbnails = photos.map(photo => {
+      // Try different methods to get viewable images
+      const directLink = photo.thumbnailLink || `https://drive.google.com/uc?id=${photo.id}&export=view`;
+      
+      return {
+        id: photo.id,
+        name: photo.name,
+        mimeType: photo.mimeType,
+        webViewLink: photo.webViewLink,
+        thumbnailLink: photo.thumbnailLink,
+        // Use thumbnail link if available, otherwise try direct access
+        directLink: directLink,
+        createdTime: photo.createdTime
+      };
+    });
+
+    console.log('Returning photos with thumbnails:', photosWithThumbnails.map(p => ({ name: p.name, id: p.id })));
 
     return res.json({
       success: true,
       photos: photosWithThumbnails,
-      count: photosWithThumbnails.length
+      count: photosWithThumbnails.length,
+      folderId: folderId
     });
 
   } catch (error) {
