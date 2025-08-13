@@ -139,10 +139,10 @@ export default function Admin() {
             <div className="p-4 rounded-lg border bg-white">
               <h2 className="font-medium mb-3">Backend Connection</h2>
               <div className="flex items-center gap-2 mb-2">
-                <div className={`w-3 h-3 rounded-full ${BACKEND_URL ? 'bg-green-500' : 'bg-red-500'}`}></div>
-                <span className="text-sm">{BACKEND_URL ? 'Connected' : 'No backend configured'}</span>
+                <div className="w-3 h-3 rounded-full bg-green-500"></div>
+                <span className="text-sm">Connected</span>
               </div>
-              {BACKEND_URL && <p className="text-xs text-slate-500">Endpoint: {BACKEND_URL}</p>}
+              <p className="text-xs text-slate-500">Endpoint: {BACKEND_URL || 'Same-origin API'}</p>
               {status && <p className="text-xs text-slate-500">Last check: {new Date(status.timestamp).toLocaleString()}</p>}
             </div>
 
