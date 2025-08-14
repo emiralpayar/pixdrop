@@ -42,6 +42,38 @@ export default async function handler(req, res) {
 
     // Fetch files from the folder
     console.log('Querying Google Drive for images in folder:', folderId);
+    
+    // First verify the folder exists and we can access it
+    try {
+      const folderInfo = await drive.files.get({
+        fileId: folderId,
+        fields: 'id,name,mimeType,parents'
+      });
+      console.log('Folder info:', folderInfo.data);
+    } catch (folderError) {
+      console.error('Error accessing folder:', folderError.message);
+      return res.json({
+        success: false,
+        error: `Cannot access folder: ${folderError.message}`,
+        photos: [],
+        count: 0
+      });
+    }
+    
+    // First, let's try to get ALL files in the folder to see what's there
+    const allFilesResponse = await drive.files.list({
+      q: `'${folderId}' in parents and trashed=false`,
+      fields: 'files(id,name,mimeType,parents,webViewLink,webContentLink,thumbnailLink,createdTime)',
+      pageSize: 50
+    });
+    
+    console.log('All files in folder:', allFilesResponse.data.files?.map(f => ({
+      name: f.name,
+      mimeType: f.mimeType,
+      id: f.id
+    })));
+    
+    // Now try the specific image query
     const response = await drive.files.list({
       q: `'${folderId}' in parents and trashed=false and (mimeType contains 'image/')`,
       fields: 'files(id,name,mimeType,webViewLink,webContentLink,thumbnailLink,createdTime)',
@@ -51,6 +83,11 @@ export default async function handler(req, res) {
 
     const photos = response.data.files || [];
     console.log(`Found ${photos.length} photos in folder ${folderId}`);
+    console.log('Image files found:', photos.map(f => ({
+      name: f.name,
+      mimeType: f.mimeType,
+      id: f.id
+    })));
 
     // Generate thumbnail URLs for the photos
     const photosWithThumbnails = photos.map(photo => {
